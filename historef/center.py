@@ -128,3 +128,25 @@ def get_fiducial_mark_centers(im_sbcd, im_tmpl_option='sbcd', max_circles=384, m
 
     return brightest_squares, im_matched
 
+
+
+def get_fiducial_mark_centers_hough(im_sbcd, im_tmpl_option='sbcd', th=0.999, param1=500, param2=10, minRadius=2, maxRadius=15):
+ 
+    tmplf = pkg_resources.files('historef') / f"template/fiducial_mark.{im_tmpl_option}.png"
+    print(tmplf)
+    im_tmpl = cv2.imread(str(tmplf), cv2.IMREAD_GRAYSCALE)
+
+    method = cv2.TM_CCOEFF_NORMED     ## template matching method
+    
+    res = cv2.matchTemplate(im_sbcd, im_tmpl, method)
+    threshold = np.quantile(res, th)  
+    res[res<threshold] = 0
+    im_circle = 255 * res
+    im_circle = np.clip(im_circle, 0, 255)  # Ensure values are within [0, 255]
+    im_circle = im_circle.astype(np.uint8)  # Convert to np.uint8
+    
+    circles = cv2.HoughCircles(
+        im_circle, cv2.HOUGH_GRADIENT, 1, 30,
+        param1, param2, minRadius, maxRadius)
+    return circles.tolist()[0], res, im_circle
+

@@ -1,3 +1,7 @@
+import subprocess
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import cv2
 from rasterio.control import GroundControlPoint
@@ -87,9 +91,56 @@ def gcps_from_pairs(match_pairs, rasterio=False, xy_swap=False, y_flip=False):
         target_x = p[2][1] if xy_swap else p[2][0]
         target_y = p[2][0] if xy_swap else p[2][1]
         target_y = -target_y if y_flip else target_y
-        gcp = (p[0][0], p[0][1], target_x, target_y)
+        gcp = (p[0][1], p[0][0], target_x, target_y)
         if rasterio:
             gcps.append(GroundControlPoint(*gcp))
         else:
             gcps.append(gcp)
     return gcps
+
+    
+def execute_gdal_translate(gcps, input_file, output_file):
+    # Build the gdal_translate command with -gcp options
+    cmd = ['gdal_translate']
+    
+    for gcp in gcps:
+        cmd.extend(['-gcp', str(gcp[0]), str(gcp[1]), str(gcp[2]), str(gcp[3])])
+    
+    cmd.extend(['-a_srs', 'epsg:3857', input_file, output_file])
+    
+    try:
+        # Execute the command
+        subprocess.run(cmd, check=True)
+        print("gdal_translate executed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing gdal_translate: {e}")
+
+
+def execute_gdalwarp(input_file, output_file):
+    # Build the gdal_translate command with -gcp options
+    cmd = ['gdalwarp']
+    cmd.extend(['-order', '2', '-refine_gcps', '20', '20', input_file, output_file])
+    
+    try:
+        # Execute the command
+        print(" ".join(cmd))
+        subprocess.run(cmd, check=True)
+        print("gdal_translate executed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing gdal_translate: {e}")
+
+
+
+def warp_from_gcps(matched_pairs, hnef, alignf):
+
+    gcps = gcps_from_pairs(matched_pairs)
+        
+    temp_dir = tempfile.TemporaryDirectory()
+    temp_dir_path = Path(temp_dir.name)
+    translate_file = temp_dir_path / "histology_translated.tif"
+    if translate_file.exists():
+        translate_file.unlink()
+
+    execute_gdal_translate(gcps, hnef, translate_file)
+    execute_gdalwarp(translate_file, alignf)
+
