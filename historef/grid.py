@@ -152,3 +152,13 @@ def plot_edges(vertices, edges, output_file=None):
     else:
         plt.show()
 
+def plot_tms(tms):
+    points = []
+    for t in tms:
+        p = np.dot(t, np.array([0,0,1]).T)
+        points.append(p)
+    ps = np.vstack(points)[:, :2]
+    plt.figure(figsize=(10, 10))
+    plt.gca().set_aspect('equal', adjustable='box')  # Setting the aspect ratio to 1:1
+    plt.scatter(ps[:, 0], ps[:, 1], s=1)
+    plt.show()

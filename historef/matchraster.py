@@ -31,18 +31,33 @@ def find_best_transform(A, B, transforms, blur=1):
     for idx, tf in enumerate(transforms):
         if idx % 500 == 0: print(idx) 
             
-        B_tf = cv2.warpAffine(B, tf[:2, :], (A.shape[1], A.shape[0]))
-        error = np.sum(np.abs(A - B_tf)) / A.size
+        error = error_raster_tf(A, B, tf) 
         errors.append(error)
         
         if error < min_error:
             min_error = error
             best_tf = tf
             best_idx = idx
-            best_B = B_tf
+            best_B = None   ## remove
     
     print(f"Best Transform: {best_idx} ({min_error})")
     return best_tf, best_idx, best_B, errors
+
+
+def error_raster_tf(A, B, tf):
+    B_tf =  warp_affine(B, tf, A)
+    error = np.sum(np.abs(A - B_tf)) / A.size
+    return error
+
+
+def warp_affine(input, tf, reference):
+    input_tf = cv2.warpAffine(input, tf[:2, :], (reference.shape[1], reference.shape[0]))
+    return input_tf
+
+
+def error_raster(A, B):
+    error = np.sum(np.abs(A - B)) / A.size
+    return error
 
 
 def preprocess_image(image, channel=None, xy_swap=False, blur=None, gamma=None):
@@ -123,7 +138,7 @@ def execute_gdalwarp(input_file, output_file):
     
     try:
         # Execute the command
-        print(" ".join(cmd))
+        print(" ".join(map(str,cmd)))
         subprocess.run(cmd, check=True)
         print("gdal_translate executed successfully.")
     except subprocess.CalledProcessError as e:
