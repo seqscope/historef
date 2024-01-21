@@ -1,11 +1,105 @@
 import subprocess
+import random
 import tempfile
 from pathlib import Path
+
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
 
 import numpy as np
 import cv2
 from rasterio.control import GroundControlPoint
 
+
+
+def find_best_transform_eff(A, B, transforms, k=5, eps=100):
+    """
+    Efficiently finds the translation vector that minimizes the difference between A and the translated B.
+
+    Args:
+        A: The first image array.
+        B: The second image array.
+        transform: A list of transform matrices
+        k: number of sample per cluster
+        eps: DBSCAN eps param
+
+    Returns:
+        The transform matrix that minimizes the difference, 
+    """
+
+    ps = ps_tms(transforms)   # transformed points
+    clustering, cluster_points = find_representative_points_with_ids(ps, k=k, eps=eps)   
+    best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms)
+    tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
+    best_tf, best_idx, errors  = find_best_transform(A, B, tf_candidates)
+    e = {'mean_error_cluster': errors_cluster, 'errors_best_cluster': errors}
+    
+    return best_tf, best_idx, e
+
+
+def ps_tms(tms):
+    '''create a set of points transformed by transforms given (0,0,1)'''
+    points = []
+    for t in tms:
+        p = np.dot(t, np.array([0,0,1]).T)
+        points.append(p)
+    ps = np.vstack(points)[:, :2]
+    return ps
+
+
+def find_representative_points_with_ids(points, k=5, eps=100):
+    
+    # DBSCAN clustering
+    dbscan = DBSCAN(eps=eps, min_samples=5)
+    dbscan.fit(points)
+
+    # Extract cluster labels
+    labels = dbscan.labels_
+
+    # Create a dictionary to store points and their IDs for each cluster
+    cluster_points = {}
+
+    # Iterate through each point and assign it to its cluster along with its ID
+    for i, (label, point) in enumerate(zip(labels, points)):
+        if label not in cluster_points:
+            cluster_points[label] = []
+        cluster_points[label].append((i, point))
+
+    # Create a dictionary to store representative points and their IDs for each cluster
+    representative_points = {}
+
+    # Iterate through each cluster and select k random non-outlier points with IDs
+    for label, points_list in cluster_points.items():
+        if label == -1:
+            continue  # Skip outliers
+        if len(points_list) >= k:
+            random_representatives = random.sample(points_list, k)
+        else:
+            random_representatives = points_list
+        representative_points[label] = [(point_id, point) for point_id, point in random_representatives]
+
+    return representative_points, cluster_points
+
+
+def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
+    
+    min_error = np.inf
+    best_cluster = None
+    mean_errors = []
+
+    for k in clusters.keys():
+        error = 0
+        for item in clusters[k]:
+            idx = item[0]
+            tf = tms[idx]
+            error += error_raster_tf(sbcd_lvl, hist_green, tf)
+        mean_error = error/len(clusters[k])
+        mean_errors.append(mean_error)
+        if mean_error < min_error:
+            min_error = mean_error
+            best_cluster = k
+            
+    return best_cluster, mean_errors
 
 def find_best_transform(A, B, transforms, blur=1):
     """
@@ -26,8 +120,6 @@ def find_best_transform(A, B, transforms, blur=1):
     best_B = None
     errors = []
 
-    cv2.imwrite("../sample/A_stretch_blur.png", A)
-
     for idx, tf in enumerate(transforms):
         if idx % 500 == 0: print(idx) 
             
@@ -41,7 +133,7 @@ def find_best_transform(A, B, transforms, blur=1):
             best_B = None   ## remove
     
     print(f"Best Transform: {best_idx} ({min_error})")
-    return best_tf, best_idx, best_B, errors
+    return best_tf, best_idx, errors
 
 
 def error_raster_tf(A, B, tf):
