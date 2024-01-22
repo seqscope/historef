@@ -34,7 +34,6 @@ def get_fiducial_mark_centers(im_sbcd, im_tmpl_option='sbcd', max_circles=384, m
     """
 
     tmplf = pkg_resources.files('historef') / f"template/fiducial_mark.{im_tmpl_option}.png"
-    print(tmplf)
     im_tmpl = cv2.imread(str(tmplf), cv2.IMREAD_GRAYSCALE)
 
     ## default settings not exposed to users:
@@ -105,7 +104,7 @@ def get_fiducial_mark_centers(im_sbcd, im_tmpl_option='sbcd', max_circles=384, m
 
         ## 5. check whether the number of pixels above the threshold is larger than the threshold
         if ( pixels_out > thres_out_pixels or pixels_in < thres_in_pixels ): ## this is not a genuine fiducial mark
-            print("Skipped a fiducial mark at (%d, %d) with (%d, %d)" % (cx, cy, pixels_in, pixels_out), file=sys.stderr)
+            # print("Skipped a fiducial mark at (%d, %d) with (%d, %d)" % (cx, cy, pixels_in, pixels_out), file=sys.stderr)
             brightest_squares.append([cx, cy, "FAIL", max_val, pixels_in, pixels_out])
             n_skipped += 1
         else:

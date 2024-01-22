@@ -32,7 +32,7 @@ def find_best_transform_eff(A, B, transforms, k=5, eps=100):
     best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms)
     tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
     best_tf, best_idx, errors  = find_best_transform(A, B, tf_candidates)
-    e = {'mean_error_cluster': errors_cluster, 'errors_best_cluster': errors}
+    e = {'error_all_clusters': errors_cluster, 'errors_best_cluster': errors}
     
     return best_tf, best_idx, e
 
@@ -65,6 +65,12 @@ def find_representative_points_with_ids(points, k=5, eps=100):
             cluster_points[label] = []
         cluster_points[label].append((i, point))
 
+    print(f"Number of clusters: {len(cluster_points.keys())}")
+    num_outliers = 0
+    if -1 in cluster_points.keys():
+        num_outliers = len(cluster_points[-1])
+    print(f"Number of outlier points: {num_outliers}")
+
     # Create a dictionary to store representative points and their IDs for each cluster
     representative_points = {}
 
@@ -85,23 +91,25 @@ def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
     
     min_error = np.inf
     best_cluster = None
-    mean_errors = []
+    errors = {} 
 
-    for k in clusters.keys():
+    for k in clusters.keys(): 
         error = 0
+        errors[k] = []
         for item in clusters[k]:
             idx = item[0]
             tf = tms[idx]
-            error += error_raster_tf(sbcd_lvl, hist_green, tf)
-        mean_error = error/len(clusters[k])
-        mean_errors.append(mean_error)
+            e = error_raster_tf(sbcd_lvl, hist_green, tf)
+            errors[k].append(e)
+            error += e
+        mean_error = sum(errors[k])/len(errors[k])
         if mean_error < min_error:
             min_error = mean_error
             best_cluster = k
             
-    return best_cluster, mean_errors
+    return best_cluster, errors
 
-def find_best_transform(A, B, transforms, blur=1):
+def find_best_transform(A, B, transforms):
     """
     Finds the translation vector that minimizes the difference between A and the translated B.
 

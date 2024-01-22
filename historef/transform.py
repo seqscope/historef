@@ -30,7 +30,7 @@ def find_overlapping_transform(A, B, rotation, scale_factor, max_nearest=300):
                 if distance < max_nearest:
                     avg_distances.append(distance)
                     overlapping_transforms.append(tm)
-
+    print(f"Number of transforms: {len(overlapping_transforms)}")
     return overlapping_transforms, avg_distances
 
 

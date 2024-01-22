@@ -143,9 +143,8 @@ def plot_edges(vertices, edges, output_file=None):
     plt.ylabel('y')
     plt.gca().set_aspect('equal', adjustable='box')  # Setting the aspect ratio to 1:1
     plt.legend()
-    plt.xlim([-1000, 12000])
-    plt.ylim([-1000, 12000])
-
+    plt.xlim([-1000, 11000])
+    plt.ylim([-1000, 11000])
     
     if output_file is not None:
         plt.savefig(output_file)
