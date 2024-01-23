@@ -135,7 +135,7 @@ def process(ngef, hnef, alignf, params):
         rotation, scale_factor, 
         max_nearest=params['matching_max_nearest']*xgrid_nge)
     plot_edges(
-        apply_transform_points(v_hne, tms[0]), e_hne, 
+        apply_transform_points(v_hne, tms[0]), e_nge, 
         output_dir / "matching_sample.png")
 
     nge_raster = preprocess_image(
