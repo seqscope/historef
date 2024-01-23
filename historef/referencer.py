@@ -28,6 +28,24 @@ def main():
     parser.add_argument('--hne', required=True, type=str, help='Path to the H&E image')
     parser.add_argument('--aligned', required=True, type=str, help='Path to the aligned image')
 
+    # Add arguments for each parameter in the params dictionary
+    parser.add_argument('--nge_xy_swap', type=lambda x: (str(x).lower() == 'true'), help='Override nge_xy_swap value')
+    parser.add_argument('--nge_center_channel', type=int, help='Override nge_center_channel value')
+    parser.add_argument('--nge_center_template', type=str, help='Override nge_center_template value')
+    parser.add_argument('--nge_center_min_dist', type=int, help='Override nge_center_min_dist value')
+    parser.add_argument('--hne_xy_swap', type=lambda x: (str(x).lower() == 'true'), help='Override hne_xy_swap value')
+    parser.add_argument('--hne_center_channel', type=int, help='Override hne_center_channel value')
+    parser.add_argument('--hne_center_template', type=str, help='Override hne_center_template value')
+    parser.add_argument('--hne_center_min_dist', type=int, help='Override hne_center_min_dist value')
+    parser.add_argument('--matching_max_nearest', type=float, help='Override matching_max_nearest value')
+    parser.add_argument('--nge_raster_channel', type=int, help='Override nge_raster_channel value')
+    parser.add_argument('--nge_raster_blur', type=int, help='Override nge_raster_blur value')
+    parser.add_argument('--nge_raster_gamma', type=int, help='Override nge_raster_gamma value')
+    parser.add_argument('--hne_raster_channel', type=int, help='Override hne_raster_channel value')
+    parser.add_argument('--hne_raster_blur', type=int, help='Override hne_raster_blur value')
+    parser.add_argument('--hne_raster_gamma', type=int, help='Override hne_raster_gamma value')
+    parser.add_argument('--matched_pair_max_distance', type=int, help='Override matched_pair_max_distance value')
+
     args = parser.parse_args()
  
     params = {
@@ -48,6 +66,11 @@ def main():
         'hne_raster_gamma':2,
         'matched_pair_max_distance': 100
     }
+
+    # Update params with any provided arguments
+    for key in params:
+        if getattr(args, key, None) is not None:
+            params[key] = getattr(args, key)
     
     nge_path = Path(args.nge)
     hne_path = Path(args.hne)

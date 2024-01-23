@@ -8,7 +8,6 @@ from sklearn.preprocessing import StandardScaler
 
 import numpy as np
 import cv2
-from rasterio.control import GroundControlPoint
 
 
 
