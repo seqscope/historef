@@ -200,17 +200,14 @@ def wb_level(image, in_black=0, in_white=255, gamma=1, out_black=0, out_white=25
     return image
 
 
-def gcps_from_pairs(match_pairs, rasterio=False, xy_swap=False, y_flip=False):
+def gcps_from_pairs(match_pairs, xy_swap=False, y_flip=False):
     gcps = []
     for p in match_pairs:
         target_x = p[2][1] if xy_swap else p[2][0]
         target_y = p[2][0] if xy_swap else p[2][1]
         target_y = -target_y if y_flip else target_y
         gcp = (p[0][1], p[0][0], target_x, target_y)
-        if rasterio:
-            gcps.append(GroundControlPoint(*gcp))
-        else:
-            gcps.append(gcp)
+        gcps.append(gcp)
     return gcps
 
     
