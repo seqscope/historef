@@ -153,7 +153,7 @@ def process(ngef, hnef, alignf, params):
     cv2.imwrite(str(output_dir / "hne_preprocessed.png"), hne_raster)
 
     best_tf, best_idx, errors  = \
-        find_best_transform_eff(nge_raster, hne_raster, tms)
+        find_best_transform_eff(nge_raster, hne_raster, tms, error_type='ccorr')
     print(f"Best Transform (ID {best_idx}):", best_tf)
     print("errors:", errors)
     plot_errors(

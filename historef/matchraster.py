@@ -10,8 +10,7 @@ import numpy as np
 import cv2
 
 
-
-def find_best_transform_eff(A, B, transforms, k=5, eps=100):
+def find_best_transform_eff(A, B, transforms, k=5, eps=100, error_type='sad'):
     """
     Efficiently finds the translation vector that minimizes the difference between A and the translated B.
 
@@ -33,11 +32,11 @@ def find_best_transform_eff(A, B, transforms, k=5, eps=100):
     errors_cluster = {0:[]}
     print(f"Number of clusters:{num_clusters}")
     if num_clusters > 0:
-        best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms)
+        best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms, error_type=error_type)
         tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
     else:
         tf_candidates = transforms
-    best_tf, best_idx, errors  = find_best_transform(A, B, tf_candidates)
+    best_tf, best_idx, errors  = find_best_transform(A, B, tf_candidates, error_type=error_type)
     e = {'error_all_clusters': errors_cluster, 'errors_best_cluster': errors}
     
     return best_tf, best_idx, e
@@ -93,7 +92,7 @@ def find_representative_points_with_ids(points, k=5, eps=100):
     return representative_points, cluster_points
 
 
-def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
+def find_best_cluster(sbcd_lvl, hist_green, clusters, tms, error_type='sad'):
     
     min_error = np.inf
     best_cluster = None
@@ -106,7 +105,7 @@ def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
         for item in clusters[k]:
             idx = item[0]
             tf = tms[idx]
-            e = error_raster_tf(sbcd_lvl, hist_green, tf)
+            e = error_raster_tf(sbcd_lvl, hist_green, tf, error_type=error_type)
             errors[k].append(e)
             error += e
         mean_error = sum(errors[k])/len(errors[k])
@@ -118,7 +117,7 @@ def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
     return best_cluster, errors
 
 
-def find_best_transform(A, B, transforms):
+def find_best_transform(A, B, transforms, error_type='sad'):
     """
     Finds the translation vector that minimizes the difference between A and the translated B.
 
@@ -134,28 +133,29 @@ def find_best_transform(A, B, transforms):
     min_error = np.inf
     best_tf = None
     best_idx = None
-    best_B = None
     errors = []
 
     for idx, tf in enumerate(transforms):
-        if idx % 500 == 0: print(idx) 
+        if idx % 100 == 0: print(idx) 
             
-        error = error_raster_tf(A, B, tf) 
+        error = error_raster_tf(A, B, tf, error_type=error_type) 
         errors.append(error)
         
         if error < min_error:
             min_error = error
             best_tf = tf
             best_idx = idx
-            best_B = None   ## remove
     
     print(f"Best Transform: {best_idx} ({min_error})")
     return best_tf, best_idx, errors
 
 
-def error_raster_tf(A, B, tf):
+def error_raster_tf(A, B, tf, error_type='sad'):
     B_tf =  warp_affine(B, tf, A)
-    error = np.sum(np.abs(A - B_tf)) / A.size
+    if error_type == 'sad':
+        error = error_raster_sad(A, B_tf)
+    else:
+        error = error_raster_ccorr(A, B_tf)
     return error
 
 
@@ -164,12 +164,43 @@ def warp_affine(input, tf, reference):
     return input_tf
 
 
-def error_raster(A, B):
+def error_raster_sad(A, B):
     error = np.sum(np.abs(A - B)) / A.size
     return error
 
 
-def preprocess_image(image, channel=None, xy_swap=False, blur=None, gamma=None):
+def error_raster_ccorr(A, B):
+    """
+    Computes the cross-correlation error between two images.
+
+    Args:
+        A: The first image array.
+        B: The second image array.
+
+    Returns:
+        The cross-correlation error.
+    """
+    # Ensure the images are the same size
+    if A.shape != B.shape:
+        raise ValueError("The images must be the same size for cross-correlation.")
+
+    # Normalize the images
+    A_normalized = cv2.normalize(A, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    B_normalized = cv2.normalize(B, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+
+    # Compute the normalized cross-correlation
+    result = cv2.matchTemplate(A_normalized, B_normalized, cv2.TM_CCORR_NORMED)
+
+    # The result is a single value since the images are of the same size
+    score = result[0, 0]
+
+    # Convert to an error metric (lower is better)
+    error = 1 - score
+    return error
+
+
+def preprocess_image(image, channel=None, xy_swap=False, blur=None, gamma=None, inverse=False):
         
     # Check if a specific channel is selected
     if channel is not None:
