@@ -40,10 +40,10 @@ def main():
     parser.add_argument('--matching_max_nearest', type=float, help='Override matching_max_nearest value')
     parser.add_argument('--nge_raster_channel', type=int, help='Override nge_raster_channel value')
     parser.add_argument('--nge_raster_blur', type=int, help='Override nge_raster_blur value')
-    parser.add_argument('--nge_raster_gamma', type=int, help='Override nge_raster_gamma value')
+    parser.add_argument('--nge_raster_gamma', type=float, help='Override nge_raster_gamma value')
     parser.add_argument('--hne_raster_channel', type=int, help='Override hne_raster_channel value')
     parser.add_argument('--hne_raster_blur', type=int, help='Override hne_raster_blur value')
-    parser.add_argument('--hne_raster_gamma', type=int, help='Override hne_raster_gamma value')
+    parser.add_argument('--hne_raster_gamma', type=float, help='Override hne_raster_gamma value')
     parser.add_argument('--matched_pair_max_distance', type=int, help='Override matched_pair_max_distance value')
 
     args = parser.parse_args()
