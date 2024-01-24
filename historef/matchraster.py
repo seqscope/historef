@@ -28,8 +28,15 @@ def find_best_transform_eff(A, B, transforms, k=5, eps=100):
 
     ps = ps_tms(transforms)   # transformed points
     clustering, cluster_points = find_representative_points_with_ids(ps, k=k, eps=eps)   
-    best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms)
-    tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
+    num_clusters = len(clustering.keys())
+    tf_candidates = transforms
+    errors_cluster = {0:[]}
+    print(f"Number of clusters:{num_clusters}")
+    if num_clusters > 0:
+        best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms)
+        tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
+    else:
+        tf_candidates = transforms
     best_tf, best_idx, errors  = find_best_transform(A, B, tf_candidates)
     e = {'error_all_clusters': errors_cluster, 'errors_best_cluster': errors}
     
@@ -91,6 +98,7 @@ def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
     min_error = np.inf
     best_cluster = None
     errors = {} 
+    print(f"Total {len(clusters.keys())} clusters.")
 
     for k in clusters.keys(): 
         error = 0
@@ -105,8 +113,10 @@ def find_best_cluster(sbcd_lvl, hist_green, clusters, tms):
         if mean_error < min_error:
             min_error = mean_error
             best_cluster = k
-            
+
+    print(f"Best Cluster ID: {best_cluster}")
     return best_cluster, errors
+
 
 def find_best_transform(A, B, transforms):
     """
