@@ -45,6 +45,8 @@ def main():
     parser.add_argument('--hne_raster_blur', type=int, help='Override hne_raster_blur value')
     parser.add_argument('--hne_raster_gamma', type=float, help='Override hne_raster_gamma value')
     parser.add_argument('--matched_pair_max_distance', type=int, help='Override matched_pair_max_distance value')
+    parser.add_argument('--sample_per_cluster', type=int, help='Override number of sampled transform per cluster')
+    parser.add_argument('--error_type', type=str, help='error type. ccorr or sad')
 
     args = parser.parse_args()
  
@@ -63,8 +65,10 @@ def main():
         'nge_raster_gamma':2,
         'hne_raster_channel':1,
         'hne_raster_blur':5,
-        'hne_raster_gamma':2,
-        'matched_pair_max_distance': 100
+        'hne_raster_gamma':3,
+        'matched_pair_max_distance': 100,
+        'sample_per_cluster': 5,
+        'error_type': 'ccorr'
     }
 
     # Update params with any provided arguments
@@ -153,7 +157,10 @@ def process(ngef, hnef, alignf, params):
     cv2.imwrite(str(output_dir / "hne_preprocessed.png"), hne_raster)
 
     best_tf, best_idx, errors  = \
-        find_best_transform_eff(nge_raster, hne_raster, tms, error_type='ccorr')
+        find_best_transform_eff(
+            nge_raster, hne_raster, tms, 
+            k=params['sample_per_cluster'], 
+            error_type=params['error_type'])
     print(f"Best Transform (ID {best_idx}):", best_tf)
     print("errors:", errors)
     plot_errors(
