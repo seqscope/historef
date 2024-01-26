@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 
 
-def find_best_transform_eff(A, B, transforms, k=5, eps=100, error_type='sad'):
+def find_best_transform_eff(A, B, transforms, k=5, eps=100, error_type='sad', force_cluster_id=-1):
     """
     Efficiently finds the translation vector that minimizes the difference between A and the translated B.
 
@@ -32,8 +32,12 @@ def find_best_transform_eff(A, B, transforms, k=5, eps=100, error_type='sad'):
     errors_cluster = {0:[]}
     print(f"Number of clusters:{num_clusters}")
     if num_clusters > 0:
-        best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms, error_type=error_type)
-        tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
+        if force_cluster_id >= 0:
+            best_cluster = force_cluster_id
+            tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
+        else:
+            best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms, error_type=error_type)
+            tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
     else:
         tf_candidates = transforms
     best_tf, best_idx, errors  = find_best_transform(A, B, tf_candidates, error_type=error_type)

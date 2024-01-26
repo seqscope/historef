@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--hne_raster_gamma', type=float, help='Override hne_raster_gamma value')
     parser.add_argument('--matched_pair_max_distance', type=int, help='Override matched_pair_max_distance value')
     parser.add_argument('--sample_per_cluster', type=int, help='Override number of sampled transform per cluster')
+    parser.add_argument('--force_cluster_id', type=int, help='Override best cluster id')
     parser.add_argument('--error_type', type=str, help='error type. ccorr or sad')
 
     args = parser.parse_args()
@@ -68,6 +69,7 @@ def main():
         'hne_raster_gamma':3,
         'matched_pair_max_distance': 100,
         'sample_per_cluster': 5,
+        'force_cluster_id': -1,
         'error_type': 'ccorr'
     }
 
@@ -160,6 +162,7 @@ def process(ngef, hnef, alignf, params):
         find_best_transform_eff(
             nge_raster, hne_raster, tms, 
             k=params['sample_per_cluster'], 
+            force_cluster_id=params['force_cluster_id'],
             error_type=params['error_type'])
     print(f"Best Transform (ID {best_idx}):", best_tf)
     print("errors:", errors)
