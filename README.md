@@ -2,6 +2,12 @@
 
 Automated referencing tool between between Seq-Scope sequence data and H&E histology image.
 
+### installation
+
+Install using the released package
+
+- https://github.com/seqscope/historef/releases/
+
 
 ### usage
 
