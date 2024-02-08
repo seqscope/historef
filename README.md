@@ -5,12 +5,21 @@ Automated referencing tool between between Seq-Scope sequence data and H&E histo
 
 ### usage
 
+Download sample datasets
 ```
-python -m historef.referencer \
---nge path/to/nge/image.png \
---hne path/to/histology.tif \
---aligned path/to/aligned_image.tif
+$ wget https://historef-sample-data.s3.amazonaws.com/sample/b08c/histology.tif
+$ wget https://historef-sample-data.s3.amazonaws.com/sample/b08c/transcript.png
 ```
+
+Then run the referencer.
+```
+$ python -m historef.referencer \
+--nge transcript.png \
+--hne histology.tif \
+--aligned output/histology_aligned.tif
+```
+
+It will generated referenced geotiff under output folder with several reports. The geotiff will be XY-swapped against transcript to address Y-axis flip.
 
 
 ### how it works
