@@ -74,7 +74,6 @@ def find_representative_points_with_ids(points, k=5, eps=100):
             cluster_points[label] = []
         cluster_points[label].append((i, point))
 
-    print(f"Number of clusters: {len(cluster_points.keys())}")
     num_outliers = 0
     if -1 in cluster_points.keys():
         num_outliers = len(cluster_points[-1])
@@ -250,6 +249,7 @@ def gcps_from_pairs(match_pairs, xy_swap=False, y_flip=False):
         target_x = p[2][1] if xy_swap else p[2][0]
         target_y = p[2][0] if xy_swap else p[2][1]
         target_y = -target_y if y_flip else target_y
+        
         gcp = (p[0][1], p[0][0], target_x, target_y)
         gcps.append(gcp)
     return gcps

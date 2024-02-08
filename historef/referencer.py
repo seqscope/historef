@@ -70,7 +70,7 @@ def main():
         'matched_pair_max_distance': 100,
         'sample_per_cluster': 5,
         'force_cluster_id': -1,
-        'error_type': 'ccorr'
+        'error_type': 'sad',
     }
 
     # Update params with any provided arguments
