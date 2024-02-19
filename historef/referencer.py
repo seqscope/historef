@@ -186,7 +186,11 @@ def write_merged_image(nge_raster, hne_raster, tf, output_path=None):
         hne_raster, tf[:2, :], 
         (nge_raster.shape[1], nge_raster.shape[0]))
     zeros = np.zeros(nge_raster.shape[:2], dtype="uint8")
-    merged = cv2.merge([nge_raster, hne_tf , zeros])
+    merged = cv2.merge([
+        zeros,
+        hne_tf, 
+        nge_raster 
+    ])
     if output_path:
         cv2.imwrite(str(output_path), merged)
     else:
