@@ -2,7 +2,9 @@ import subprocess
 import random
 import tempfile
 from pathlib import Path
+import os
 
+import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 
@@ -10,7 +12,10 @@ import numpy as np
 import cv2
 
 
-def find_best_transform_eff(A, B, transforms, k=5, eps=100, error_type='sad', force_cluster_id=-1):
+
+def find_best_transform_eff(
+    A, B, transforms, output_dir, 
+    k=5, eps=100, error_type='sad', force_cluster_id=-1):
     """
     Efficiently finds the translation vector that minimizes the difference between A and the translated B.
 
@@ -36,7 +41,9 @@ def find_best_transform_eff(A, B, transforms, k=5, eps=100, error_type='sad', fo
             best_cluster = force_cluster_id
             tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
         else:
-            best_cluster, errors_cluster = find_best_cluster(A, B, clustering, transforms, error_type=error_type)
+            best_cluster, errors_cluster = find_best_cluster(
+                A, B, clustering, transforms, 
+                output_dir, error_type=error_type)
             tf_candidates = [transforms[t[0]] for t in cluster_points[best_cluster]]
     else:
         tf_candidates = transforms
@@ -95,7 +102,9 @@ def find_representative_points_with_ids(points, k=5, eps=100):
     return representative_points, cluster_points
 
 
-def find_best_cluster(sbcd_lvl, hist_green, clusters, tms, error_type='sad'):
+def find_best_cluster(
+        sbcd_lvl, hist_green, clusters, tms, 
+        output_dir, error_type='sad'):
     
     min_error = np.inf
     best_cluster = None
@@ -115,6 +124,17 @@ def find_best_cluster(sbcd_lvl, hist_green, clusters, tms, error_type='sad'):
         if mean_error < min_error:
             min_error = mean_error
             best_cluster = k
+        # Find the representative item (with minimum error) for the cluster
+        min_error_idx = np.argmin(errors[k])  # Get the index of the minimum error in the cluster
+        representative_tf = tms[clusters[k][min_error_idx][0]]  # Get the tf of the representative item
+
+        # Ensure the output directory exists
+        cluster_output_dir = os.path.join(output_dir, f"clusters/merged_image_cluster_{k}.png")
+        os.makedirs(os.path.dirname(cluster_output_dir), exist_ok=True)
+
+        # Write the merged image for the representative item
+        write_merged_image(sbcd_lvl, hist_green, representative_tf, cluster_output_dir)
+
 
     print(f"Best Cluster ID: {best_cluster}")
     return best_cluster, errors
@@ -233,6 +253,9 @@ def preprocess_image(image, channel=None, xy_swap=False, blur=None, gamma=None, 
     if xy_swap:
         gray_image = np.transpose(gray_image)
 
+    if inverse:
+        gray_image = 255 - gray_image
+
     return gray_image
 
 
@@ -255,9 +278,13 @@ def gcps_from_pairs(match_pairs, xy_swap=False, y_flip=False):
     return gcps
 
     
-def execute_gdal_translate(gcps, input_file, output_file):
+def execute_gdal_translate(gcps, input_file, output_file, simg=''):
     # Build the gdal_translate command with -gcp options
-    cmd = ['gdal_translate']
+    if simg:
+        cmd = ['singularity', 'exec', simg, 'gdal_translate']
+    else:
+        cmd = ['gdal_translate']
+
     
     for gcp in gcps:
         cmd.extend(['-gcp', str(gcp[0]), str(gcp[1]), str(gcp[2]), str(gcp[3])])
@@ -272,9 +299,13 @@ def execute_gdal_translate(gcps, input_file, output_file):
         print(f"Error executing gdal_translate: {e}")
 
 
-def execute_gdalwarp(input_file, output_file):
+def execute_gdalwarp(input_file, output_file, simg=''):
     # Build the gdal_translate command with -gcp options
-    cmd = ['gdalwarp']
+    if simg:
+        cmd = ['singularity', 'exec', simg, 'gdalwarp']
+    else:
+        cmd = ['gdalwarp']
+
     cmd.extend(['-order', '2', '-refine_gcps', '20', '20', input_file, output_file])
     
     try:
@@ -287,7 +318,7 @@ def execute_gdalwarp(input_file, output_file):
 
 
 
-def warp_from_gcps(matched_pairs, hnef, alignf):
+def warp_from_gcps(matched_pairs, hnef, alignf, simg=''):
 
     gcps = gcps_from_pairs(matched_pairs)
         
@@ -297,6 +328,24 @@ def warp_from_gcps(matched_pairs, hnef, alignf):
     if translate_file.exists():
         translate_file.unlink()
 
-    execute_gdal_translate(gcps, hnef, translate_file)
-    execute_gdalwarp(translate_file, alignf)
+    execute_gdal_translate(gcps, hnef, translate_file, simg)
+    execute_gdalwarp(translate_file, alignf, simg)
+
+
+def write_merged_image(nge_raster, hne_raster, tf, output_path=None):
+    hne_tf = cv2.warpAffine(
+        hne_raster, tf[:2, :], 
+        (nge_raster.shape[1], nge_raster.shape[0]))
+    zeros = np.zeros(nge_raster.shape[:2], dtype="uint8")
+    merged = cv2.merge([
+        zeros,
+        hne_tf, 
+        nge_raster 
+    ])
+    if output_path:
+        cv2.imwrite(str(output_path), merged)
+    else:
+        plt.figure(figsize=(10,10))
+        plt.imshow(merged, cmap='Greys')
+
 
