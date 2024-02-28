@@ -19,6 +19,7 @@ from historef.transform import \
 from historef.util import intensity_cut
 from historef.matchraster import \
     find_best_transform_eff, preprocess_image,\
+    write_merged_image,\
     warp_from_gcps
 
 
@@ -41,13 +42,16 @@ def main():
     parser.add_argument('--nge_raster_channel', type=int, help='Override nge_raster_channel value')
     parser.add_argument('--nge_raster_blur', type=int, help='Override nge_raster_blur value')
     parser.add_argument('--nge_raster_gamma', type=float, help='Override nge_raster_gamma value')
+    parser.add_argument('--nge_raster_invert', type=lambda x: (str(x).lower() == 'true'), help='invert nge_raster')
     parser.add_argument('--hne_raster_channel', type=int, help='Override hne_raster_channel value')
     parser.add_argument('--hne_raster_blur', type=int, help='Override hne_raster_blur value')
     parser.add_argument('--hne_raster_gamma', type=float, help='Override hne_raster_gamma value')
+    parser.add_argument('--hne_raster_invert', type=lambda x: (str(x).lower() == 'true'), help='invert hne_raster')
     parser.add_argument('--matched_pair_max_distance', type=int, help='Override matched_pair_max_distance value')
     parser.add_argument('--sample_per_cluster', type=int, help='Override number of sampled transform per cluster')
     parser.add_argument('--force_cluster_id', type=int, help='Override best cluster id')
     parser.add_argument('--error_type', type=str, help='error type. ccorr or sad')
+    parser.add_argument('--simg', type=str, help='singularity image location for gdal')
 
     args = parser.parse_args()
  
@@ -60,17 +64,20 @@ def main():
         'hne_center_channel': 0,
         'hne_center_template': 'HnE_121',
         'hne_center_min_dist': 300,
-        'matching_max_nearest': 0.33,
-        'nge_raster_channel':1,
+        'matching_max_nearest': 0.4,
+        'nge_raster_channel':2,
         'nge_raster_blur':5,
-        'nge_raster_gamma':2,
+        'nge_raster_gamma':1,
+        'nge_raster_invert':False,
         'hne_raster_channel':1,
         'hne_raster_blur':5,
-        'hne_raster_gamma':3,
+        'hne_raster_gamma':1,
+        'hne_raster_invert': True,
         'matched_pair_max_distance': 100,
         'sample_per_cluster': 5,
         'force_cluster_id': -1,
-        'error_type': 'sad',
+        'error_type': 'ccorr',
+        'simg': ''
     }
 
     # Update params with any provided arguments
@@ -148,19 +155,24 @@ def process(ngef, hnef, alignf, params):
         im_nge_raw, xy_swap=params['nge_xy_swap'], 
         channel=params['nge_raster_channel'], 
         blur=params['nge_raster_blur'], 
-        gamma=params['nge_raster_gamma'])
+        gamma=params['nge_raster_gamma'],
+        inverse=params['nge_raster_invert']
+        )
+            
     cv2.imwrite(str(output_dir / "nge_preprocessed.png"), nge_raster)
     
     hne_raster = preprocess_image(
         im_hne_raw, xy_swap=params['hne_xy_swap'], 
         channel=params['hne_raster_channel'], 
         blur=params['hne_raster_blur'], 
-        gamma=params['hne_raster_gamma'])
+        gamma=params['hne_raster_gamma'],
+        inverse=params['hne_raster_invert'])
     cv2.imwrite(str(output_dir / "hne_preprocessed.png"), hne_raster)
 
     best_tf, best_idx, errors  = \
         find_best_transform_eff(
             nge_raster, hne_raster, tms, 
+            output_dir,
             k=params['sample_per_cluster'], 
             force_cluster_id=params['force_cluster_id'],
             error_type=params['error_type'])
@@ -175,27 +187,10 @@ def process(ngef, hnef, alignf, params):
     matched_pairs = find_nearest_pairs(
         v_nge, v_hne, best_tf,                          #type:ignore
         threshold=params['matched_pair_max_distance'])  #type:ignore
-    warp_from_gcps(matched_pairs, hnef, alignf)
+    warp_from_gcps(matched_pairs, hnef, alignf, simg=params['simg'])
     plot_edges(
         apply_transform_points(v_hne, best_tf), e_nge, 
         output_dir / "best_matched_pair.png")
-
-
-def write_merged_image(nge_raster, hne_raster, tf, output_path=None):
-    hne_tf = cv2.warpAffine(
-        hne_raster, tf[:2, :], 
-        (nge_raster.shape[1], nge_raster.shape[0]))
-    zeros = np.zeros(nge_raster.shape[:2], dtype="uint8")
-    merged = cv2.merge([
-        zeros,
-        hne_tf, 
-        nge_raster 
-    ])
-    if output_path:
-        cv2.imwrite(str(output_path), merged)
-    else:
-        plt.figure(figsize=(10,10))
-        plt.imshow(merged, cmap='Greys')
 
 
 # Extracting cluster IDs and corresponding errors
@@ -209,7 +204,7 @@ def plot_errors(clusters, comparison=None, dot_size=3, output_path=None):
             y_values.append(error)
 
     # Plotting cluster errors
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(12, 12))
     plt.scatter(
         x_values, y_values, 
         s=dot_size, label='Cluster Errors')
