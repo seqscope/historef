@@ -11,10 +11,10 @@ from scipy.optimize import minimize_scalar, minimize
 from scipy.ndimage import affine_transform
 
 
-def find_overlapping_transform(A, B, rotation, scale_factor, max_nearest=300):
+def find_overlapping_transform(A, B, rotation, scale_factor, max_nearest=300, buffer=200):
     '''identify transform that transformed B is within A'''
     # Calculate the bounding box for A just once
-    bbox_A = bbox(A, 100)
+    bbox_A = bbox(A, buffer)
     avg_distances = []
 
     overlapping_transforms = []

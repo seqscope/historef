@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--hne_center_template', type=str, help='Override hne_center_template value')
     parser.add_argument('--hne_center_min_dist', type=int, help='Override hne_center_min_dist value')
     parser.add_argument('--matching_max_nearest', type=float, help='Override matching_max_nearest value')
+    parser.add_argument('--buffer', type=int, help='increase this if no transform found')
     parser.add_argument('--nge_raster_channel', type=int, help='Override nge_raster_channel value')
     parser.add_argument('--nge_raster_blur', type=int, help='Override nge_raster_blur value')
     parser.add_argument('--nge_raster_gamma', type=float, help='Override nge_raster_gamma value')
@@ -65,6 +66,7 @@ def main():
         'hne_center_template': 'HnE_121',
         'hne_center_min_dist': 300,
         'matching_max_nearest': 0.4,
+        'buffer': 300,
         'nge_raster_channel':2,
         'nge_raster_blur':5,
         'nge_raster_gamma':1,
@@ -146,7 +148,8 @@ def process(ngef, hnef, alignf, params):
     tms, avg_distances = find_overlapping_transform(
         v_nge, v_hne, 
         rotation, scale_factor, 
-        max_nearest=params['matching_max_nearest']*xgrid_nge)
+        max_nearest=params['matching_max_nearest']*xgrid_nge,
+        buffer=params['buffer'])
     plot_edges(
         apply_transform_points(v_hne, tms[0]), e_nge, 
         output_dir / "matching_sample.png")
