@@ -38,6 +38,7 @@ def main():
     parser.add_argument('--hne_center_channel', type=int, help='Override hne_center_channel value')
     parser.add_argument('--hne_center_template', type=str, help='Override hne_center_template value')
     parser.add_argument('--hne_center_min_dist', type=int, help='Override hne_center_min_dist value')
+    parser.add_argument('--hne_intensity_cut', type=float, help='intensity cut for H&E. choose between 0-1. default 0.9')
     parser.add_argument('--matching_max_nearest', type=float, help='Override matching_max_nearest value')
     parser.add_argument('--buffer', type=int, help='increase this if no transform found')
     parser.add_argument('--nge_raster_channel', type=int, help='Override nge_raster_channel value')
@@ -65,6 +66,7 @@ def main():
         'hne_center_channel': 0,
         'hne_center_template': 'HnE_121',
         'hne_center_min_dist': 300,
+        'hne_intensity_cut': 0.9,
         'matching_max_nearest': 0.4,
         'buffer': 300,
         'nge_raster_channel':2,
@@ -129,7 +131,7 @@ def process(ngef, hnef, alignf, params):
     plot_edges(v_nge, e_nge, output_dir / "nge_graph.png")
 
     im_hne_raw = cv2.imread(hnef, cv2.IMREAD_COLOR)
-    im_hne = intensity_cut(im_hne_raw)
+    im_hne = intensity_cut(im_hne_raw, params['hne_intensity_cut'])
     im_hne = preprocess_image(
         im_hne, 
         xy_swap=params['hne_xy_swap'])
