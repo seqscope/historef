@@ -19,7 +19,7 @@ $ wget https://historef-sample-data.s3.amazonaws.com/sample/b08c/transcript.png
 
 Then run the referencer.
 ```
-$ python -m historef.referencer \
+$ historef \
 --nge transcript.png \
 --hne histology.tif \
 --aligned output/histology_aligned.tif
